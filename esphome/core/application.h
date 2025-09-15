@@ -96,6 +96,31 @@ static const uint32_t TEARDOWN_TIMEOUT_REBOOT_MS = 1000;  // 1 second for quick 
 
 class Application {
  public:
+  std::vector<Component *> &get_components() { return this->components_; }
+
+  void delete_component(Component *component) {
+    this->disable_component_loop_(component);
+
+    // Removes from components_ vector
+    auto it = std::remove(this->components_.begin(), this->components_.end(), component);
+    if (it != this->components_.end()) {
+      this->components_.erase(it, this->components_.end());
+    }
+
+    // Ensures reemove completely from looping_components_ (inactive section too)
+    auto it2 = std::remove(this->looping_components_.begin(), this->looping_components_.end(), component);
+    if (it2 != this->looping_components_.end()) {
+      this->looping_components_.erase(it2, this->looping_components_.end());
+
+      // check and corrects pointer if needed
+      if (this->looping_components_active_end_ > this->looping_components_.size()) {
+        this->looping_components_active_end_ = this->looping_components_.size();
+      }
+    }
+
+    delete component;
+  }
+
   void pre_setup(const std::string &name, const std::string &friendly_name, const char *comment,
                  const char *compilation_time, bool name_add_mac_suffix) {
     arch_init();
